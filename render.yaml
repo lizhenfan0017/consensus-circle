@@ -1,0 +1,27 @@
+# Render 一键部署配置
+# 用法：把整个共识圈文件夹推到 GitHub，在 Render 点 "New" → "Blueprint" 选此仓库即可。
+# Render 会按本文件自动建好 Web 服务 + 免费 PostgreSQL 数据库，并注入 DATABASE_URL。
+
+services:
+  - type: web
+    name: consensus-circle
+    runtime: python
+    plan: free
+    region: oregon            # 可改成 singapore / frankfurt 等离你更近的区域
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: consensus-db
+          property: connectionString
+      - key: ADMIN_PASSWORD
+        generateValue: true   # Render 自动生成强密码；可在 Dashboard → Environment 查看/修改
+      - key: PYTHON_VERSION
+        value: "3.11"
+
+databases:
+  - name: consensus-db
+    databaseName: consensus
+    user: cc_user
+    plan: free
