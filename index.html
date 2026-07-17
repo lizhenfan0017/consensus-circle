@@ -4,8 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>共识圈</title>
-<!-- 该 meta 仅由 Flask 渲染时变为 content="flask"；直接打开（预览面板）时保持字面量，脚本据此启用内置 mock 后端 -->
-<meta name="x-backend" content="{{ 'flask' }}" />
+<meta name="x-backend" content="flask" />
 <style>
 :root {
   --primary:#FF2442; --bg:#FFFFFF; --text:#333333; --gray:#F5F5F5; --line:#EFEFEF;
@@ -17,12 +16,9 @@ body{display:flex;justify-content:center;}
 .phone{width:100%;max-width:420px;min-height:100vh;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 0 40px rgba(0,0,0,.12);}
 .view{position:absolute;inset:0;background:var(--bg);}
 .hidden{display:none !important;}
-
 .progress-bar{position:absolute;top:0;left:0;height:3px;width:0;background:var(--primary);z-index:999;opacity:0;transition:opacity .2s;}
 .progress-bar.active{opacity:1;animation:loadbar .9s ease-in-out infinite;}
 @keyframes loadbar{0%{width:0;left:0;}50%{width:60%;left:20%;}100%{width:0;left:100%;}}
-
-/* 登录/注册 */
 .auth-view{display:flex;align-items:center;justify-content:center;}
 .auth-box{width:100%;max-width:320px;padding:24px;}
 .logo{font-size:34px;font-weight:800;color:var(--primary);text-align:center;letter-spacing:2px;}
@@ -37,8 +33,6 @@ body{display:flex;justify-content:center;}
 .btn-primary{height:46px;background:var(--primary);color:#fff;border:none;border-radius:23px;font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;margin-top:4px;}
 .btn-primary:active{transform:scale(.98);}
 .hint{text-align:center;font-size:12px;color:#bbb;}
-
-/* 信息流 */
 .feed-view{display:flex;flex-direction:column;}
 .topbar{height:52px;flex:0 0 52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--line);background:var(--bg);}
 .brand{font-size:18px;font-weight:800;color:var(--primary);}
@@ -50,7 +44,6 @@ body{display:flex;justify-content:center;}
   #refresh-btn:active{transform:rotate(180deg);}
 .feed-list{flex:1;overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch;}
 .empty{text-align:center;color:#bbb;font-size:13px;padding:40px 0;}
-
 .card{position:relative;overflow:hidden;background:var(--bg);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.05);cursor:pointer;border:1px solid var(--line);}
 .card:active{background:#fafafa;}
 .card-img{width:100%;height:200px;object-fit:cover;border-radius:10px;display:block;margin-bottom:12px;background:var(--gray);}
@@ -71,8 +64,6 @@ body{display:flex;justify-content:center;}
 @keyframes ripple{to{transform:scale(2.4);opacity:0;}}
 .fab{position:absolute;right:18px;bottom:24px;width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:28px;line-height:1;cursor:pointer;box-shadow:0 6px 18px rgba(255,36,66,.4);}
 .fab:active{transform:scale(.92);}
-
-/* 详情 */
 .detail-view{transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);z-index:50;display:flex;flex-direction:column;}
 .detail-view.open{transform:translateX(0);}
 .detail-header{cursor:grab;}
@@ -99,8 +90,6 @@ body{display:flex;justify-content:center;}
 .detail-comment-bar{flex:0 0 auto;display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--bg);}
 .detail-comment-bar input{flex:1;height:40px;border:1px solid var(--line);border-radius:20px;padding:0 14px;font-size:14px;font-family:var(--font);outline:none;}
 .detail-comment-bar button{background:var(--primary);color:#fff;border:none;border-radius:20px;padding:0 18px;font-size:14px;cursor:pointer;font-family:var(--font);}
-
-/* 弹窗 */
 .modal{position:absolute;inset:0;z-index:100;display:flex;align-items:flex-end;}
 .modal-mask{position:absolute;inset:0;background:rgba(0,0,0,.4);}
 .modal-card{position:relative;width:100%;background:var(--bg);border-radius:16px 16px 0 0;padding:18px;z-index:1;animation:slideUp .28s ease;}
@@ -117,7 +106,6 @@ body{display:flex;justify-content:center;}
 <body>
 <div class="phone">
   <div id="progress-bar" class="progress-bar"></div>
-
   <section id="auth-view" class="view auth-view">
     <div class="auth-box">
       <div class="logo">共识圈</div>
@@ -138,7 +126,6 @@ body{display:flex;justify-content:center;}
       </form>
     </div>
   </section>
-
   <section id="feed-view" class="view feed-view hidden">
     <header class="topbar">
       <div class="brand">共识圈</div>
@@ -152,7 +139,6 @@ body{display:flex;justify-content:center;}
     <button id="fab" class="fab" title="发动态">＋</button>
     <div id="feed-empty" class="empty hidden">还没有动态，点右下角发布第一条吧～</div>
   </section>
-
   <section id="detail-view" class="view detail-view">
     <header id="detail-header" class="topbar detail-header">
       <button id="back-btn" class="back-btn">‹ 返回</button>
@@ -161,7 +147,6 @@ body{display:flex;justify-content:center;}
     </header>
     <div id="detail-scroll" class="detail-scroll"></div>
   </section>
-
   <div id="composer" class="modal hidden">
     <div class="modal-mask"></div>
     <div class="modal-card">
@@ -174,212 +159,25 @@ body{display:flex;justify-content:center;}
       </form>
     </div>
   </div>
-
   <div id="toast" class="toast"></div>
 </div>
-
 <script>
 (function(){
   "use strict";
-  // 运行模式：直接打开（预览面板）时 meta 内容为字面量，脚本据此启用内置 mock 后端；
-  // 由 Flask 渲染时 content="flask"，脚本改走真实后端 /api/...
   var USE_MOCK = (function(){
     var m = document.querySelector('meta[name="x-backend"]');
     return !(m && m.getAttribute("content") === "flask");
   })();
-  var KEY = "consensus_circle_preview_v1";
-  var DB = null;          // 会话内数据源（真相）
-  var idb = null;         // IndexedDB 连接（不可用则为 null）
-  var token = USE_MOCK ? "" : ((typeof localStorage !== "undefined" && localStorage.getItem("token")) || "");
-  // ---- IndexedDB 持久化：比 localStorage 更可靠；不可用时自动回落到内存 ----
-  function openDB(){
-    return new Promise(function(res){
-      if(typeof indexedDB==="undefined"){ res(null); return; }
-      try{
-        var req=indexedDB.open("consensus_circle_preview",1);
-        req.onupgradeneeded=function(){ var db=req.result; if(!db.objectStoreNames.contains("kv")) db.createObjectStore("kv"); };
-        req.onsuccess=function(){ res(req.result); };
-        req.onerror=function(){ res(null); };
-        req.onblocked=function(){ res(null); };
-      }catch(e){ res(null); }
-    });
-  }
-  function idbGet(key){
-    return new Promise(function(res){
-      if(!idb){ res(null); return; }
-      try{ var tx=idb.transaction("kv","readonly"); var r=tx.objectStore("kv").get(key);
-        r.onsuccess=function(){ res(r.result||null); }; r.onerror=function(){ res(null); };
-      }catch(e){ res(null); }
-    });
-  }
-  function idbSet(key,val){
-    return new Promise(function(res){
-      if(!idb){ res(); return; }
-      try{ var tx=idb.transaction("kv","readwrite"); tx.objectStore("kv").put(val,key);
-        tx.oncomplete=function(){ res(); }; tx.onerror=function(){ res(); };
-      }catch(e){ res(); }
-    });
-  }
-  function loadState(){
-    return openDB().then(function(db){ idb=db; return idbGet(KEY); })
-      .then(function(raw){ if(raw) return raw; var s=seed(); if(idb) idbSet(KEY,s); return s; })
-      .catch(function(){ return seed(); });
-  }
-  function persist(){ if(idb) idbSet(KEY, DB); }   // 异步落盘，失败不影响交互
+  var token = (typeof localStorage !== "undefined" && localStorage.getItem("token")) || "";
   var me = null;
   var feed = [];
   var page = 1, hasMore = true, loading = false;
-  var cards = {};   // postId -> { card, likeBtn, likeCount, commentIco }
-
+  var cards = {};
   var $ = function(id){ return document.getElementById(id); };
   var authView=$("auth-view"), feedView=$("feed-view"), detailView=$("detail-view"),
       feedList=$("feed-list"), progressBar=$("progress-bar"), composer=$("composer");
-
   function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(function(){t.classList.remove("show");},1400); }
   function now(){ var d=new Date(); function p(n){return (n<10?"0":"")+n;} return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds()); }
-
-  // ---------- 本地 "假后端"（仅 USE_MOCK 时使用；数据存于 DB，变更后 persist() 落盘到 IndexedDB）----------
-
-  function seed(){
-    var users = [
-      {id:1, username:"1456232", password:"Consen@Circle2026", nickname:"管理员", is_admin:1},
-      {id:2, username:"xiaomei", password:"123456", nickname:"小美", is_admin:0},
-      {id:3, username:"dazhi",   password:"123456", nickname:"大志", is_admin:0},
-      {id:4, username:"achao",   password:"123456", nickname:"阿超", is_admin:0}
-    ];
-    var g1="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23FF2442'/%3E%3Cstop offset='1' stop-color='%23FFB199'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='300' fill='url(%23a)'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='48' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E";
-    var g2="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Cdefs%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237A1FFF'/%3E%3Cstop offset='1' stop-color='%23FF6FB5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='300' fill='url(%23b)'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='48' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%8D%B0%3C/text%3E%3C/svg%3E";
-    var g3="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Cdefs%3E%3ClinearGradient id='c' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300C2A8'/%3E%3Cstop offset='1' stop-color='%2387E9C9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='300' fill='url(%23c)'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='48' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E";
-    var samples = [
-      {t:"周末citywalk路线分享", c:"沿着梧桐区慢慢走，咖啡店、二手书店、小画廊一路逛下来，整个人都松弛了。附上我的私藏打卡点～", a:2, img:g1},
-      {t:"今日妆容 | 伪素颜通勤", c:"底妆只用了气垫+散粉，眉毛野生感，唇釉选了奶茶色，5分钟出门。", a:2, img:g2},
-      {t:"自己做的低卡晚餐", c:"西兰花虾仁+半根玉米+一小碗藜麦，饱腹又没负担，减脂期也能吃得很满足。", a:3, img:g3},
-      {t:"读书笔记《被讨厌的勇气》", c:"课题分离真的太重要了。别人的评价是别人的课题，我只需要对自己的选择负责。", a:3, img:null},
-      {t:"阳台改造计划", c:"把杂物间清空，铺了木地板，摆上躺椅和绿植，现在这里是我每天最想待的角落。", a:4, img:g2},
-      {t:"通勤路上拍到的晚霞", c:"下班那刻天空是橘子味的，疲惫瞬间被治愈。", a:4, img:g1},
-      {t:"新手瑜伽第30天", c:"终于能稳稳下犬式了，身体变轻了，睡眠也好了很多。", a:2, img:null},
-      {t:"周末市集淘到的宝贝", c:"老相机、手作陶瓷杯、复古胸针，每一样都很有故事感。", a:3, img:g3},
-      {t:"一人食火锅教程", c:"清汤底+肥牛+蔬菜拼盘，蘸料是蒜泥香油，简单又幸福。", a:4, img:g1},
-      {t:"极简护肤心得", c:"少即是多，氨基酸洁面+保湿+防晒，皮肤反而稳定了。", a:2, img:null},
-      {t:"城市夜跑路线", c:"沿江步道5公里，风吹过来的时候感觉什么烦恼都没了。", a:3, img:g2},
-      {t:"手冲咖啡入门", c:"水温90度，粉水比1:15，闷蒸30秒，第一口就能喝出果酸。", a:4, img:g3},
-      {t:"我的书架分享", c:"按颜色排列意外地好看，强迫症狂喜。", a:2, img:null},
-      {t:"雨天居家vlog", c:"煮一壶茶，看一部老电影，雨天最适合放空。", a:3, img:null}
-    ];
-    var posts=[], pid=1;
-    for(var i=0;i<samples.length;i++){
-      var s=samples[i];
-      posts.push({id:pid++, user_id:s.a, title:s.t, content:s.c, image:s.img,
-        created_at:fmtAgo(samples.length-i)});
-    }
-    return { users:users, posts:posts, comments:[], likes:[], token:"",
-      nextPostId:pid, nextCommentId:1 };
-  }
-  function fmtAgo(n){ var d=new Date(Date.now()-n*3600*1000); function p(x){return (x<10?"0":"")+x;} return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds()); }
-
-  function userById(id){ for(var i=0;i<DB.users.length;i++) if(DB.users[i].id===id) return DB.users[i]; return null; }
-  function currentUid(){ if(token && token.indexOf("u:")===0) return parseInt(token.slice(2),10); return null; }
-  function currentUser(){ var id=currentUid(); return id?userById(id):null; }
-
-  function serializePost(p){
-    var u=userById(p.user_id);
-    var like_count=0, liked=false, uid=currentUid();
-    for(var i=0;i<DB.likes.length;i++){ if(DB.likes[i].post_id===p.id) like_count++; if(uid&&DB.likes[i].post_id===p.id&&DB.likes[i].user_id===uid) liked=true; }
-    var comment_count=0; for(var j=0;j<DB.comments.length;j++) if(DB.comments[j].post_id===p.id) comment_count++;
-    return {id:p.id, title:p.title, content:p.content, image:p.image||null,
-      author:u?(u.nickname||u.username):"未知", author_username:u?u.username:"",
-      created_at:p.created_at, like_count:like_count, comment_count:comment_count, liked:liked};
-  }
-
-  // 模拟异步接口，返回 Promise<{data}>
-  function mockApi(method, path, payload){
-    return new Promise(function(resolve){
-      setTimeout(function(){
-        var data={ok:true};
-        if(method==="POST" && path==="/api/register"){
-          var u=payload.username.trim(), pw=payload.password;
-          if(!u||!pw) return resolve({data:fail("用户名和密码不能为空")});
-          if(pw.length<6) return resolve({data:fail("密码至少 6 位")});
-          if(DB.users.some(function(x){return x.username===u;})) return resolve({data:fail("用户名已存在",409)});
-          var nid=DB.users.length?Math.max.apply(null,DB.users.map(function(x){return x.id;}))+1:1;
-          DB.users.push({id:nid,username:u,password:pw,nickname:u,is_admin:0});
-          persist(); return resolve({data:{ok:true}});
-        }
-        if(method==="POST" && path==="/api/login"){
-          var uu=payload.username.trim(), pp=payload.password;
-          var usr=DB.users.filter(function(x){return x.username===uu;})[0];
-          if(!usr||usr.password!==pp) return resolve({data:fail("用户名或密码错误",401)});
-          token="u:"+usr.id; if(DB)DB.token=token; persist();
-          return resolve({data:{ok:true,token:token,user:serUser(usr)}});
-        }
-        if(path==="/api/me"){
-          var cu=currentUser(); return resolve({data: cu?{ok:true,user:serUser(cu)}:{ok:false}});
-        }
-        if(path.split("?")[0]==="/api/posts" && method==="GET"){
-          var pm=path.match(/[?&]page=(\d+)/); var pg=pm?parseInt(pm[1],10):1; var per=10;
-          var sorted=DB.posts.slice().sort(function(a,b){return b.id-a.id;});
-          var slice=sorted.slice((pg-1)*per, pg*per);
-          return resolve({data:{ok:true,posts:slice.map(serializePost),page:pg,has_more:pg*per<sorted.length}});
-        }
-        if(path==="/api/posts" && method==="POST"){
-          if(!currentUid()) return resolve({data:fail("请先登录",401)});
-          var t=(payload.title||"").trim(), c=(payload.content||"").trim();
-          if(!t&&!c) return resolve({data:fail("标题或内容不能为空")});
-          DB.posts.push({id:DB.nextPostId++, user_id:currentUid(), title:t, content:c, image:payload.image||null, created_at:now()});
-          persist(); return resolve({data:{ok:true}});
-        }
-        var m=null;
-        if((m=path.match(/^\/api\/posts\/(\d+)$/)) && method==="GET"){
-          var p=DB.posts.filter(function(x){return x.id===parseInt(m[1],10);})[0];
-          if(!p) return resolve({data:fail("动态不存在",404)});
-          var sp=serializePost(p);
-          sp.comments=DB.comments.filter(function(x){return x.post_id===p.id;}).map(function(c){
-            var cu=userById(c.user_id);
-            return {id:c.id, content:c.content, author:cu?(cu.nickname||cu.username):"未知", author_username:cu?cu.username:"", user_id:c.user_id, created_at:c.created_at};
-          });
-          return resolve({data:{ok:true,post:sp}});
-        }
-        if((m=path.match(/^\/api\/posts\/(\d+)\/like$/)) && method==="POST"){
-          if(!currentUid()) return resolve({data:fail("请先登录",401)});
-          var pid=parseInt(m[1],10);
-          var ex=DB.likes.filter(function(x){return x.post_id===pid&&x.user_id===currentUid();})[0];
-          var liked; if(ex){ DB.likes=DB.likes.filter(function(x){return x!==ex;}); liked=false; } else { DB.likes.push({post_id:pid,user_id:currentUid()}); liked=true; }
-          persist();
-          var cnt=DB.likes.filter(function(x){return x.post_id===pid;}).length;
-          return resolve({data:{ok:true,liked:liked,like_count:cnt}});
-        }
-        if((m=path.match(/^\/api\/posts\/(\d+)\/comments$/)) && method==="POST"){
-          if(!currentUid()) return resolve({data:fail("请先登录",401)});
-          var pc=parseInt(m[1],10); var ct=(payload.content||"").trim();
-          if(!ct) return resolve({data:fail("评论内容不能为空")});
-          if(!DB.posts.some(function(x){return x.id===pc;})) return resolve({data:fail("动态不存在",404)});
-          DB.comments.push({id:DB.nextCommentId++, post_id:pc, user_id:currentUid(), content:ct, created_at:now()});
-          persist(); return resolve({data:{ok:true}});
-        }
-        if((m=path.match(/^\/api\/posts\/(\d+)$/)) && method==="DELETE"){
-          var cu=currentUser(); if(!cu) return resolve({data:fail("请先登录",401)});
-          if(!cu.is_admin) return resolve({data:fail("仅管理员可删除动态",403)});
-          var dp=parseInt(m[1],10);
-          DB.posts=DB.posts.filter(function(x){return x.id!==dp;});
-          DB.comments=DB.comments.filter(function(x){return x.post_id!==dp;});
-          DB.likes=DB.likes.filter(function(x){return x.post_id!==dp;});
-          persist(); return resolve({data:{ok:true}});
-        }
-        if((m=path.match(/^\/api\/comments\/(\d+)$/)) && method==="DELETE"){
-          var cu2=currentUser(); if(!cu2) return resolve({data:fail("请先登录",401)});
-          if(!cu2.is_admin) return resolve({data:fail("仅管理员可删除评论",403)});
-          var cid=parseInt(m[1],10);
-          DB.comments=DB.comments.filter(function(x){return x.id!==cid;});
-          persist(); return resolve({data:{ok:true}});
-        }
-        resolve({data:fail("接口不存在",404)});
-      }, 120);
-    });
-  }
-  function fail(msg,code){ return {ok:false,msg:msg,code:code||400}; }
-  function serUser(u){ return {id:u.id,username:u.username,nickname:u.nickname||u.username,is_admin:!!u.is_admin}; }
-
-  // ---------- 真实后端（仅 !USE_MOCK 时使用）：把扁平响应 {ok,...} 包成 {data:{...}} 对齐 UI ----------
   function realApi(method, path, payload){
     var opts={ method:method, headers:{} };
     if(token) opts.headers["Authorization"]="Bearer "+token;
@@ -397,14 +195,7 @@ body{display:flex;justify-content:center;}
     }
     return fetch(path, opts).then(function(res){ return res.json(); }).then(function(body){ return { data: body }; });
   }
-
-  // 统一入口：mock / 真实后端 二选一
-  function api(method, path, payload){
-    if(USE_MOCK) return mockApi(method, path, payload);
-    return realApi(method, path, payload);
-  }
-
-  // ---------- UI 工具 ----------
+  function api(method, path, payload){ return realApi(method, path, payload); }
   function h(tag,attrs,children){
     var e=document.createElement(tag); attrs=attrs||{};
     for(var k in attrs){ if(!attrs.hasOwnProperty(k))continue; var v=attrs[k]; if(v==null)continue;
@@ -422,7 +213,6 @@ body{display:flex;justify-content:center;}
   function showProgress(){progressBar.classList.add("active");}
   function hideProgress(){progressBar.classList.remove("active");}
   function attachRipple(el){ el.addEventListener("pointerdown",function(e){ var r=el.getBoundingClientRect(); var sz=Math.max(r.width,r.height); var s=document.createElement("span"); s.className="ripple"; s.style.width=s.style.height=sz+"px"; s.style.left=(e.clientX-r.left-sz/2)+"px"; s.style.top=(e.clientY-r.top-sz/2)+"px"; el.appendChild(s); setTimeout(function(){s.remove();},620); }); }
-
   function toggleLike(p,btn){
     api("POST","/api/posts/"+p.id+"/like").then(function(r){
       if(!r.data.ok){toast(r.data.msg||"操作失败");return;}
@@ -433,7 +223,6 @@ body{display:flex;justify-content:center;}
       var c=btn.querySelector(".like-count"); if(c)c.textContent=String(p.like_count);
     });
   }
-
   function postCard(p){
     var card=h("div",{class:"card",onclick:function(){openDetail(p.id);}});
     if(p.image) card.appendChild(h("img",{class:"card-img",src:p.image,alt:""}));
@@ -451,9 +240,7 @@ body{display:flex;justify-content:center;}
     cards[p.id]={card:card,likeBtn:likeBtn,likeCount:likeCount,commentIco:commentIco};
     return card;
   }
-
   function syncCard(post){ if(!post)return; for(var i=0;i<feed.length;i++){ if(feed[i].id===post.id){ feed[i].like_count=post.like_count; feed[i].comment_count=post.comment_count; feed[i].liked=post.liked; break; } } var c=cards[post.id]; if(!c)return; c.likeBtn.classList.toggle("liked",!!post.liked); var heart=c.likeBtn.querySelector(".heart"); if(heart)heart.classList.toggle("liked",!!post.liked); c.likeCount.textContent=String(post.like_count); c.commentIco.textContent="💬 "+post.comment_count; }
-
   function loadFeed(reset){
     if(loading)return; loading=true; showProgress();
     api("GET","/api/posts?page="+(reset?1:page+1)).then(function(r){
@@ -466,18 +253,15 @@ body{display:flex;justify-content:center;}
     });
   }
   feedList.addEventListener("scroll",function(){ if(feedList.scrollTop+feedList.clientHeight>=feedList.scrollHeight-60){ if(hasMore&&!loading) loadFeed(false); } });
-
   $("refresh-btn").addEventListener("click",function(){ feedList.scrollTop=0; loadFeed(true); });
   var PTR={startY:null,dist:0,active:false,threshold:60};
   feedList.addEventListener("pointerdown",function(e){ if(feedList.scrollTop<=0){PTR.startY=e.clientY;PTR.active=false;} else {PTR.startY=null;} });
   feedList.addEventListener("pointermove",function(e){ if(PTR.startY==null||loading)return; var dy=e.clientY-PTR.startY; if(dy>0&&feedList.scrollTop<=0){ PTR.active=true; PTR.dist=Math.min(dy*0.5,90); feedList.style.transition="none"; feedList.style.transform="translateY("+PTR.dist+"px)"; showProgress(); } });
   function endPull(){ if(!PTR.active){PTR.startY=null;return;} var pass=PTR.dist>=PTR.threshold; feedList.style.transition="transform .2s"; feedList.style.transform=""; setTimeout(function(){feedList.style.transition="";},220); if(pass) loadFeed(true); else hideProgress(); PTR.active=false; PTR.startY=null; PTR.dist=0; }
   feedList.addEventListener("pointerup",endPull); feedList.addEventListener("pointercancel",endPull);
-
   var detailPost=null;
   function openDetail(id){ showProgress(); api("GET","/api/posts/"+id).then(function(r){ hideProgress(); if(!r.data.ok){toast(r.data.msg||"加载失败");return;} detailPost=r.data.post; renderDetail(detailPost); syncCard(detailPost); detailView.classList.add("open"); }); }
   function closeDetail(){ detailView.classList.remove("open"); syncCard(detailPost); }
-
   function renderDetail(p){
     var box=$("detail-scroll"); box.innerHTML="";
     if(p.image) box.appendChild(h("img",{class:"detail-hero",src:p.image,alt:""}));
@@ -501,7 +285,6 @@ body{display:flex;justify-content:center;}
   }
   function adminDeletePost(id){ if(!confirm("确定删除该动态？"))return; api("DELETE","/api/posts/"+id).then(function(r){ if(!r.data.ok){toast(r.data.msg||"删除失败");return;} closeDetail(); loadFeed(true); }); }
   function adminDeleteComment(id){ if(!confirm("确定删除该评论？"))return; api("DELETE","/api/comments/"+id).then(function(r){ if(!r.data.ok){toast(r.data.msg||"删除失败");return;} if(detailPost) openDetail(detailPost.id); }); }
-
   var startX=null,dragging=false,dx=0;
   function onDown(e){ if(!detailView.classList.contains("open"))return; startX=e.clientX; dragging=true; dx=0; detailView.style.transition="none"; }
   function onMove(e){ if(!dragging)return; dx=e.clientX-startX; if(dx<0) detailView.style.transform="translateX("+dx+"px)"; }
@@ -509,17 +292,13 @@ body{display:flex;justify-content:center;}
   $("detail-header").addEventListener("pointerdown",onDown);
   window.addEventListener("pointermove",onMove); window.addEventListener("pointerup",onUp);
   $("back-btn").addEventListener("click",closeDetail);
-
-  // ---------- 认证 ----------
   document.querySelectorAll(".tab").forEach(function(t){ t.addEventListener("click",function(){ document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("active");}); t.classList.add("active"); var tab=t.getAttribute("data-tab"); $("login-form").classList.toggle("hidden",tab!=="login"); $("register-form").classList.toggle("hidden",tab!=="register"); }); });
   $("login-form").addEventListener("submit",function(e){ e.preventDefault(); var f=e.target; api("POST","/api/login",{username:f.username.value.trim(),password:f.password.value}).then(function(r){ if(!r.data.ok){toast(r.data.msg||"登录失败");return;} if(!USE_MOCK && r.data.token){ token=r.data.token; try{localStorage.setItem("token",token);}catch(e){} } me=r.data.user; afterLogin(); }); });
   $("register-form").addEventListener("submit",function(e){ e.preventDefault(); var f=e.target; api("POST","/api/register",{username:f.username.value.trim(),password:f.password.value}).then(function(r){ if(!r.data.ok){toast(r.data.msg||"注册失败");return;} toast("注册成功，请登录"); document.querySelector('.tab[data-tab="login"]').click(); f.reset(); }); });
-  $("logout-btn").addEventListener("click",function(){ token=""; me=null; if(USE_MOCK){ if(DB)DB.token=""; persist(); } else { try{localStorage.removeItem("token");}catch(e){} } showAuth(); });
+  $("logout-btn").addEventListener("click",function(){ token=""; me=null; try{localStorage.removeItem("token");}catch(e){} showAuth(); });
   function afterLogin(){ var b=$("user-badge"); b.textContent=(me.is_admin?"管理员 ":"@")+(me.is_admin?me.username:me.nickname); if(me.is_admin)b.classList.add("admin"); else b.classList.remove("admin"); showFeed(); loadFeed(true); }
   function showAuth(){ authView.classList.remove("hidden"); feedView.classList.add("hidden"); detailView.classList.remove("open"); }
   function showFeed(){ authView.classList.add("hidden"); feedView.classList.remove("hidden"); }
-
-  // ---------- 发布 ----------
   $("fab").addEventListener("click",function(){composer.classList.remove("hidden");});
   $("composer-close").addEventListener("click",function(){composer.classList.add("hidden");});
   composer.querySelector(".modal-mask").addEventListener("click",function(){composer.classList.add("hidden");});
@@ -527,15 +306,12 @@ body{display:flex;justify-content:center;}
   $("composer-form").addEventListener("submit",function(e){
     e.preventDefault(); var f=e.target;
     if(!f.content.value.trim()&&!f.title.value.trim()){toast("标题或内容不能为空");return;}
-    var doPost=function(img){ var pl={title:f.title.value.trim(),content:f.content.value.trim()}; if(USE_MOCK) pl.image=img; else pl._file=(f.image.files[0]||null); api("POST","/api/posts",pl).then(function(d){ if(!d.data.ok){toast(d.data.msg||"发布失败");return;} composer.classList.add("hidden"); f.reset(); $("file-name").textContent="📷 添加图片（选填）"; loadFeed(true); }); };
-    var file=f.image.files[0];
-    if(file && USE_MOCK){ var rd=new FileReader(); rd.onload=function(){doPost(rd.result);}; rd.readAsDataURL(file); }
-    else doPost(null);
+    var pl={title:f.title.value.trim(),content:f.content.value.trim()};
+    pl._file=(f.image.files[0]||null);
+    api("POST","/api/posts",pl).then(function(d){ if(!d.data.ok){toast(d.data.msg||"发布失败");return;} composer.classList.add("hidden"); f.reset(); $("file-name").textContent="📷 添加图片（选填）"; loadFeed(true); });
   });
-
-  // ---------- 启动 ----------
-  function boot(){ if(!token){showAuth();return;} api("GET","/api/me").then(function(r){ if(r.data.ok){me=r.data.user; afterLogin();} else {token=""; if(USE_MOCK){ if(DB)DB.token=""; persist(); } else { try{localStorage.removeItem("token");}catch(e){} } showAuth();} }); }
-  loadState().then(function(s){ DB=s; if(USE_MOCK){ token=s.token||""; } boot(); });
+  function boot(){ if(!token){showAuth();return;} api("GET","/api/me").then(function(r){ if(r.data.ok){me=r.data.user; afterLogin();} else {token=""; try{localStorage.removeItem("token");}catch(e){} showAuth();} }); }
+  boot();
 })();
 </script>
 </body>
