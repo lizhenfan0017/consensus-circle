@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 共识圈 —— 仿小红书轻社交平台（Flask + SQLAlchemy）
+功能：用户注册/登录、发图文动态、点赞/取消点赞、评论、管理员删动态/评论。
+数据库自动适配：
+  - 本地 / 未配置 DATABASE_URL 时 → SQLite（文件 instance/consensus.db）
+  - 配置 DATABASE_URL（如 Render 的 PostgreSQL）时 → 云端共享数据库
+所有接口返回 JSON，统一结构 {"ok": bool, ...}。
 """
 
 import os
@@ -18,8 +23,10 @@ INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
 
+# ---- 数据库 URI：优先用环境变量 DATABASE_URL（Render 提供 PostgreSQL）----
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if DATABASE_URL.startswith("postgres://"):
+    # SQLAlchemy 2.x 要求 postgresql:// 前缀
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 if DATABASE_URL:
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
@@ -27,16 +34,20 @@ else:
     os.makedirs(INSTANCE_DIR, exist_ok=True)
     SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(INSTANCE_DIR, "consensus.db")
 
+# 管理员账号：用户名 1456232，密码满足 大小写+数字+符号 且 >=12 位
 ADMIN_USERNAME = "1456232"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Consen@Circle2026")
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True)  # 允许前端独立部署时跨域访问
 db = SQLAlchemy(app)
 
 
+# --------------------------------------------------------------------------- #
+# 数据模型
+# --------------------------------------------------------------------------- #
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -82,6 +93,9 @@ class Like(db.Model):
     __table_args__ = (db.UniqueConstraint("post_id", "user_id", name="uq_like_post_user"),)
 
 
+# --------------------------------------------------------------------------- #
+# 工具函数
+# --------------------------------------------------------------------------- #
 def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -132,14 +146,21 @@ def allowed_file(fn):
     return "." in fn and fn.rsplit(".", 1)[1].lower() in ALLOWED_EXT
 
 
+# --------------------------------------------------------------------------- #
+# 页面
+# --------------------------------------------------------------------------- #
 @app.route("/")
 def index():
+    # 优先从仓库根目录读取 index.html；不存在时回退到 templates/（兼容旧结构）
     root_html = os.path.join(BASE_DIR, "index.html")
     if os.path.exists(root_html):
         return send_from_directory(BASE_DIR, "index.html")
     return render_template("index.html")
 
 
+# --------------------------------------------------------------------------- #
+# 认证
+# --------------------------------------------------------------------------- #
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}
@@ -186,6 +207,9 @@ def me():
     return jsonify({"ok": True, "user": serialize_user(user)})
 
 
+# --------------------------------------------------------------------------- #
+# 动态
+# --------------------------------------------------------------------------- #
 @app.route("/api/posts")
 def list_posts():
     page = int(request.args.get("page", 1))
@@ -329,6 +353,9 @@ def delete_post(pid):
     return jsonify({"ok": True})
 
 
+# --------------------------------------------------------------------------- #
+# 评论删除（仅管理员）
+# --------------------------------------------------------------------------- #
 @app.route("/api/comments/<int:cid>", methods=["DELETE"])
 def delete_comment(cid):
     user = get_current_user()
@@ -343,6 +370,32 @@ def delete_comment(cid):
     return jsonify({"ok": True})
 
 
+# --------------------------------------------------------------------------- #
+# 清理重复动态（仅管理员）：同一作者 + 标题 + 内容 完全相同者，仅保留最早一条
+# --------------------------------------------------------------------------- #
+@app.route("/api/admin/dedupe", methods=["POST"])
+def dedupe_posts():
+    user = get_current_user()
+    if not user or not user.is_admin:
+        return error("仅管理员可操作", 403)
+    seen = {}
+    removed = 0
+    for p in Post.query.order_by(Post.id.asc()).all():
+        key = (p.user_id, p.title, p.content)
+        if key in seen:
+            Like.query.filter_by(post_id=p.id).delete()
+            Comment.query.filter_by(post_id=p.id).delete()
+            db.session.delete(p)
+            removed += 1
+        else:
+            seen[key] = p.id
+    db.session.commit()
+    return jsonify({"ok": True, "removed": removed})
+
+
+# --------------------------------------------------------------------------- #
+# 初始化（建表 + 创建管理员）
+# --------------------------------------------------------------------------- #
 def init_db():
     with app.app_context():
         db.create_all()
@@ -356,6 +409,7 @@ def init_db():
                     created_at=now(),
                 )
             )
+        # 演示用户（密码统一 123456）
         demo_users = [("xiaomei", "小美"), ("dazhi", "大志"), ("achao", "阿超")]
         demo_map = {}
         for uname, nick in demo_users:
@@ -367,7 +421,8 @@ def init_db():
                 db.session.flush()
             demo_map[uname] = u
         db.session.commit()
-        if Post.query.count() == 0:
+        # 演示动态（仅演示数据尚未存在时填充，避免多 worker 并发重复 seed）
+        if Post.query.filter_by(title="周末citywalk路线分享").first() is None:
             samples = [
                 ("xiaomei", "周末citywalk路线分享", "沿着梧桐区慢慢走，咖啡店、二手书店、小画廊一路逛下来，整个人都松弛了。附上我的私藏打卡点～"),
                 ("xiaomei", "今日妆容 | 伪素颜通勤", "底妆只用了气垫+散粉，眉毛野生感，唇釉选了奶茶色，5分钟出门。"),
@@ -386,6 +441,7 @@ def init_db():
             db.session.commit()
 
 
+# 导入即初始化数据库（gunicorn / flask run 都会执行）
 init_db()
 
 if __name__ == "__main__":
@@ -394,6 +450,7 @@ if __name__ == "__main__":
     print("  共识圈 启动成功")
     print("  管理员账号 :", ADMIN_USERNAME)
     print("  管理员密码 :", ADMIN_PASSWORD)
+    print("  数据库     :", "PostgreSQL" if DATABASE_URL else "SQLite (本地)")
     print("  访问地址   : http://localhost:5000")
     print("=" * 48)
     app.run(host="0.0.0.0", port=5000, debug=True)
