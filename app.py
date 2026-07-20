@@ -399,7 +399,7 @@ def dedupe_posts():
 def init_db():
     with app.app_context():
         db.create_all()
-           admin = User.query.filter_by(username=ADMIN_USERNAME).first()
+        admin = User.query.filter_by(username=ADMIN_USERNAME).first()
         if not admin:
             admin = User(username=ADMIN_USERNAME, nickname="管理员",
                          is_admin=True, created_at=now())
