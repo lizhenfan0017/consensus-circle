@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-共识圈 —— 仿小红书轻社交平台（Flask + SQLAlchemy）
+共识圈 —— 轻社交平台（Flask + SQLAlchemy）
 功能：用户注册/登录、发图文动态、点赞/取消点赞、评论、管理员删动态/评论。
 数据库自动适配：
   - 本地 / 未配置 DATABASE_URL 时 → SQLite（文件 instance/consensus.db）
