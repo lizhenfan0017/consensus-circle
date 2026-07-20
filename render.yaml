@@ -16,7 +16,7 @@ services:
           name: consensus-db
           property: connectionString
       - key: ADMIN_PASSWORD
-        generateValue: true   # Render 自动生成强密码；可在 Dashboard → Environment 查看/修改
+        value: "Consen@Circle2026"   # 固定管理员密码，避免自动生成导致登录不上
       - key: PYTHON_VERSION
         value: "3.11"
 
