@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-共识圈 —— 轻社交平台（Flask + SQLAlchemy）
+共识圈 —— 仿小红书轻社交平台（Flask + SQLAlchemy）
 功能：用户注册/登录、发图文动态、点赞/取消点赞、评论、管理员删动态/评论。
 数据库自动适配：
   - 本地 / 未配置 DATABASE_URL 时 → SQLite（文件 instance/consensus.db）
@@ -12,11 +12,12 @@ import os
 from datetime import datetime
 
 import secrets
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, Response
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect, text
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
@@ -54,6 +55,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     nickname = db.Column(db.String(80))
+    avatar_path = db.Column(db.String(255))
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.String(20), nullable=False)
 
@@ -81,6 +83,7 @@ class Comment(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    parent_id = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.String(20), nullable=False)
 
 
@@ -91,6 +94,24 @@ class Like(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     created_at = db.Column(db.String(20), nullable=False)
     __table_args__ = (db.UniqueConstraint("post_id", "user_id", name="uq_like_post_user"),)
+
+
+class CommentLike(db.Model):
+    __tablename__ = "comment_likes"
+    id = db.Column(db.Integer, primary_key=True)
+    comment_id = db.Column(db.Integer, db.ForeignKey("comments.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.String(20), nullable=False)
+    __table_args__ = (db.UniqueConstraint("comment_id", "user_id", name="uq_cl_comment_user"),)
+
+
+class ViewHistory(db.Model):
+    __tablename__ = "view_history"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
+    created_at = db.Column(db.String(20), nullable=False)
+    __table_args__ = (db.UniqueConstraint("user_id", "post_id", name="uq_vh_user_post"),)
 
 
 # --------------------------------------------------------------------------- #
@@ -120,6 +141,7 @@ def serialize_user(u):
         "username": u.username,
         "nickname": u.nickname or u.username,
         "is_admin": bool(u.is_admin),
+        "avatar": ("/" + u.avatar_path) if u.avatar_path else None,
     }
 
 
@@ -142,6 +164,36 @@ def serialize_post(post, uid=None):
     }
 
 
+def serialize_comments(post_id, uid=None):
+    """把某动态的评论组装成嵌套结构（含点赞数/是否已赞、子回复）。"""
+    comments = Comment.query.filter_by(post_id=post_id).all()
+    cmap = {}
+    for c in comments:
+        author = db.session.get(User, c.user_id)
+        like_count = CommentLike.query.filter_by(comment_id=c.id).count()
+        liked = bool(uid and CommentLike.query.filter_by(comment_id=c.id, user_id=uid).first())
+        cmap[c.id] = {
+            "id": c.id,
+            "content": c.content,
+            "parent_id": c.parent_id,
+            "author": (author.nickname or author.username) if author else "未知",
+            "author_username": author.username if author else "",
+            "user_id": c.user_id,
+            "created_at": c.created_at,
+            "like_count": like_count,
+            "liked": liked,
+            "replies": [],
+        }
+    top = []
+    for c in comments:
+        o = cmap[c.id]
+        if c.parent_id and c.parent_id in cmap:
+            cmap[c.parent_id]["replies"].append(o)
+        else:
+            top.append(o)
+    return top
+
+
 def allowed_file(fn):
     return "." in fn and fn.rsplit(".", 1)[1].lower() in ALLOWED_EXT
 
@@ -154,8 +206,17 @@ def index():
     # 优先从仓库根目录读取 index.html；不存在时回退到 templates/（兼容旧结构）
     root_html = os.path.join(BASE_DIR, "index.html")
     if os.path.exists(root_html):
-        return send_from_directory(BASE_DIR, "index.html")
-    return render_template("index.html")
+        with open(root_html, "r", encoding="utf-8") as f:
+            html = f.read()
+        # 预览/静态托管时 meta 为 content="mock"，前端走内置演示数据；
+        # 由 Flask 托管时在此替换为 content="flask"，让前端改走真实共享后端。
+        html = html.replace('name="x-backend" content="mock"',
+                            'name="x-backend" content="flask"')
+        return Response(html, mimetype="text/html")
+    rendered = render_template("index.html")
+    return Response(rendered.replace('name="x-backend" content="mock"',
+                                    'name="x-backend" content="flask"'),
+                    mimetype="text/html")
 
 
 # --------------------------------------------------------------------------- #
@@ -273,24 +334,7 @@ def post_detail(pid):
     if not post:
         return error("动态不存在", 404)
     p = serialize_post(post, uid)
-    comments = (
-        db.session.query(Comment, User.username, User.nickname)
-        .join(User, User.id == Comment.user_id)
-        .filter(Comment.post_id == pid)
-        .order_by(Comment.id.asc())
-        .all()
-    )
-    p["comments"] = [
-        {
-            "id": c.id,
-            "content": c.content,
-            "author": (nickname or username),
-            "author_username": username,
-            "user_id": c.user_id,
-            "created_at": c.created_at,
-        }
-        for c, username, nickname in comments
-    ]
+    p["comments"] = serialize_comments(pid, uid)
     return jsonify({"ok": True, "post": p})
 
 
@@ -320,12 +364,13 @@ def add_comment(pid):
         return error("请先登录", 401)
     data = request.get_json(silent=True) or {}
     content = (data.get("content") or "").strip()
+    parent_id = data.get("parent_id")
     if not content:
         return error("评论内容不能为空", 400)
     if not db.session.get(Post, pid):
         return error("动态不存在", 404)
     db.session.add(
-        Comment(post_id=pid, user_id=user.id, content=content, created_at=now())
+        Comment(post_id=pid, user_id=user.id, content=content, parent_id=parent_id, created_at=now())
     )
     db.session.commit()
     return jsonify({"ok": True})
@@ -371,6 +416,139 @@ def delete_comment(cid):
 
 
 # --------------------------------------------------------------------------- #
+# 个人信息 / 我的数据
+# --------------------------------------------------------------------------- #
+@app.route("/api/me", methods=["POST"])
+def update_me():
+    user = get_current_user()
+    if not user:
+        return error("请先登录", 401)
+    nickname = (request.form.get("nickname") or "").strip()
+    if nickname:
+        user.nickname = nickname
+    f = request.files.get("avatar")
+    if f and f.filename:
+        if not allowed_file(f.filename):
+            return error("仅支持 png/jpg/jpeg/gif/webp 图片", 400)
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        fn = secure_filename(f"{datetime.now().timestamp()}_avatar_{user.id}_{f.filename}")
+        f.save(os.path.join(UPLOAD_FOLDER, fn))
+        user.avatar_path = os.path.join("static", "uploads", fn)
+    db.session.commit()
+    return jsonify({"ok": True, "user": serialize_user(user)})
+
+
+@app.route("/api/me/likes")
+def me_likes():
+    user = get_current_user()
+    if not user:
+        return error("请先登录", 401)
+    rows = (
+        db.session.query(Post)
+        .join(Like, Like.post_id == Post.id)
+        .filter(Like.user_id == user.id)
+        .order_by(Post.id.desc())
+        .all()
+    )
+    return jsonify({"ok": True, "posts": [serialize_post(p, user.id) for p in rows]})
+
+
+@app.route("/api/me/comments")
+def me_comments():
+    user = get_current_user()
+    if not user:
+        return error("请先登录", 401)
+    rows = (
+        db.session.query(Comment, Post)
+        .join(Post, Post.id == Comment.post_id)
+        .filter(Comment.user_id == user.id)
+        .order_by(Comment.id.desc())
+        .all()
+    )
+    data = [
+        {
+            "id": c.id,
+            "content": c.content,
+            "post_id": c.post_id,
+            "post_title": p.title or "(无标题)",
+            "created_at": c.created_at,
+        }
+        for c, p in rows
+    ]
+    return jsonify({"ok": True, "comments": data})
+
+
+@app.route("/api/me/posts")
+def me_posts():
+    user = get_current_user()
+    if not user:
+        return error("请先登录", 401)
+    rows = Post.query.filter_by(user_id=user.id).order_by(Post.id.desc()).all()
+    return jsonify({"ok": True, "posts": [serialize_post(p, user.id) for p in rows]})
+
+
+@app.route("/api/posts/<int:pid>/view", methods=["POST"])
+def record_view(pid):
+    """记录浏览历史：登录用户打开动态详情时调用。同一用户同一动态只保留最新一条。"""
+    user = get_current_user()
+    if not user:
+        return jsonify({"ok": True})  # 未登录不记录，但不报错
+    if not db.session.get(Post, pid):
+        return error("动态不存在", 404)
+    existing = ViewHistory.query.filter_by(user_id=user.id, post_id=pid).first()
+    if existing:
+        existing.created_at = now()
+    else:
+        db.session.add(ViewHistory(user_id=user.id, post_id=pid, created_at=now()))
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/me/history")
+def me_history():
+    user = get_current_user()
+    if not user:
+        return error("请先登录", 401)
+    rows = (
+        ViewHistory.query.filter_by(user_id=user.id)
+        .order_by(ViewHistory.created_at.desc())
+        .all()
+    )
+    seen = set()
+    out = []
+    for v in rows:
+        if v.post_id in seen:
+            continue
+        seen.add(v.post_id)
+        p = db.session.get(Post, v.post_id)
+        if not p:
+            continue
+        item = serialize_post(p, user.id)
+        item["viewed_at"] = v.created_at
+        out.append(item)
+    return jsonify({"ok": True, "posts": out})
+
+
+@app.route("/api/comments/<int:cid>/like", methods=["POST"])
+def like_comment(cid):
+    user = get_current_user()
+    if not user:
+        return error("请先登录", 401)
+    if not db.session.get(Comment, cid):
+        return error("评论不存在", 404)
+    existing = CommentLike.query.filter_by(comment_id=cid, user_id=user.id).first()
+    if existing:
+        db.session.delete(existing)
+        liked = False
+    else:
+        db.session.add(CommentLike(comment_id=cid, user_id=user.id, created_at=now()))
+        liked = True
+    db.session.commit()
+    count = CommentLike.query.filter_by(comment_id=cid).count()
+    return jsonify({"ok": True, "liked": liked, "like_count": count})
+
+
+# --------------------------------------------------------------------------- #
 # 清理重复动态（仅管理员）：同一作者 + 标题 + 内容 完全相同者，仅保留最早一条
 # --------------------------------------------------------------------------- #
 @app.route("/api/admin/dedupe", methods=["POST"])
@@ -396,9 +574,51 @@ def dedupe_posts():
 # --------------------------------------------------------------------------- #
 # 初始化（建表 + 创建管理员）
 # --------------------------------------------------------------------------- #
+def migrate_db():
+    """在已有库上补列/建新表（create_all 不会 ALTER 已存在表）。幂等，可重复执行。"""
+    insp = inspect(db.engine)
+    try:
+        user_cols = {c["name"] for c in insp.get_columns("users")}
+    except Exception:
+        user_cols = set()
+    if "avatar_path" not in user_cols:
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN avatar_path VARCHAR(255)"))
+                conn.commit()
+        except Exception:
+            pass
+    try:
+        cmt_cols = {c["name"] for c in insp.get_columns("comments")}
+    except Exception:
+        cmt_cols = set()
+    if "parent_id" not in cmt_cols:
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE comments ADD COLUMN parent_id INTEGER"))
+                conn.commit()
+        except Exception:
+            pass
+    try:
+        tables = set(insp.get_table_names())
+    except Exception:
+        tables = set()
+    if "comment_likes" not in tables:
+        try:
+            CommentLike.__table__.create(db.engine, checkfirst=True)
+        except Exception:
+            pass
+    if "view_history" not in tables:
+        try:
+            ViewHistory.__table__.create(db.engine, checkfirst=True)
+        except Exception:
+            pass
+
+
 def init_db():
     with app.app_context():
         db.create_all()
+        migrate_db()
         admin = User.query.filter_by(username=ADMIN_USERNAME).first()
         if not admin:
             admin = User(username=ADMIN_USERNAME, nickname="管理员",
@@ -407,7 +627,6 @@ def init_db():
         # 强制把管理员密码同步为当前 ADMIN_PASSWORD（无论是否已存在，
         # 避免环境变量变更后数据库里的旧密码导致登录不上）
         admin.password_hash = generate_password_hash(ADMIN_PASSWORD)
-
         # 演示用户（密码统一 123456）
         demo_users = [("xiaomei", "小美"), ("dazhi", "大志"), ("achao", "阿超")]
         demo_map = {}
