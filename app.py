@@ -399,16 +399,15 @@ def dedupe_posts():
 def init_db():
     with app.app_context():
         db.create_all()
-        if not User.query.filter_by(username=ADMIN_USERNAME).first():
-            db.session.add(
-                User(
-                    username=ADMIN_USERNAME,
-                    password_hash=generate_password_hash(ADMIN_PASSWORD),
-                    nickname="管理员",
-                    is_admin=True,
-                    created_at=now(),
-                )
-            )
+           admin = User.query.filter_by(username=ADMIN_USERNAME).first()
+        if not admin:
+            admin = User(username=ADMIN_USERNAME, nickname="管理员",
+                         is_admin=True, created_at=now())
+            db.session.add(admin)
+        # 强制把管理员密码同步为当前 ADMIN_PASSWORD（无论是否已存在，
+        # 避免环境变量变更后数据库里的旧密码导致登录不上）
+        admin.password_hash = generate_password_hash(ADMIN_PASSWORD)
+
         # 演示用户（密码统一 123456）
         demo_users = [("xiaomei", "小美"), ("dazhi", "大志"), ("achao", "阿超")]
         demo_map = {}
